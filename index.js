@@ -43,12 +43,12 @@ client.connect(err => {
   const productCollection = client.db("abidDb").collection("products");
   console.log('Database Connected')
 
-  app.get('/products', (req, res) => {
-    productCollection.find()
-      .toArray((err, items) => {
-        res.send(items)
-      })
-  })
+  // app.get('/products', (req, res) => {
+  //   productCollection.find()
+  //     .toArray((err, items) => {
+  //       res.send(items)
+  //     })
+  // })
 
 
   app.post('/adminPanel', (req, res) => {
@@ -61,7 +61,7 @@ client.connect(err => {
       })
   })
 
-  client.close();
+  // client.close();
 });
 
 app.listen(port, () => {
