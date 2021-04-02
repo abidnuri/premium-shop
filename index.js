@@ -1,70 +1,75 @@
-const express = require('express')
-const app = express()
-const MongoClient = require('mongodb').MongoClient;
-const ObjectID = require('mongodb').ObjectID;
-const cors = require('cors');
-const bodyParser = require('body-parser');
-require('dotenv').config()
+const express = require("express");
+const MongoClient = require("mongodb").MongoClient;
+const bodyParser = require("body-parser");
+const cors = require("cors");
+const ObjectId = require("mongodb").ObjectId;
+const port = process.env.PORT || 8000;
 
-const port = process.env.PORT || 5055;
+require("dotenv").config();
 
-app.use(cors());
+const app = express();
+app.use(express.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(express.json());
+app.use(cors());
 
-// const express = require('express')
+const uri = "mongodb+srv://premiumdb:premium120@cluster0.o8ccw.mongodb.net/premiumdb?retryWrites=true&w=majority";
+const client = new MongoClient(uri, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+});
+client.connect((err) => {
+    const productCollection = client.db("premiumdb").collection("products");
+    const productCollectionForOrder = client.db("premiumdb").collection("orders");
 
-// const cors = require('cors')
-// const bodyParser = require('body-parser')
-// require('dotenv').config()
-// const port = process.env.PORT || 5500;
-// // console.log(process.env.DB_USER)
+    app.get("/events", (req, res) => {
+        productCollection.find().toArray((err, items) => {
+            res.send(items);
+        });
+    });
 
-// app.use(cors());
-// app.use(bodyParser.json());
+    app.post("/addEvent", (req, res) => {
+        const newEvent = req.body;
+        console.log("adding new event: ", newEvent);
+        productCollection.insertOne(newEvent).then((result) => {
+            console.log("inserted count", result.insertedCount);
+            res.send(result.insertedCount > 0);
+        });
+    });
 
-// const MongoClient = require('mongodb').MongoClient;
+    app.get("/checkout/:_id", (req, res) => {
+        console.log(req.params._id);
+        productCollection.find({ _id: ObjectId(req.params._id) })
 
-// // const pass = '69ptv8xxczERheg';
+            .toArray((err, documents) => {
+                res.send(documents[0]);
+            });
+    });
 
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.o8ccw.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`;
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    app.post("/addOrders", (req, res) => {
+        const newOrder = req.body;
+        productCollectionForOrder.insertOne(newOrder).then((result) => {
+            res.send(result.insertedCount > 0);
+        });
+    });
 
-// const app = express()
+    app.get("/orders", (req, res) => {
+        productCollectionForOrder.find().toArray((err, items) => {
+            res.send(items);
+        });     
+    });
+    
+    app.delete('/delete/:_id',(req,res) => {
+        productCollection.deleteOne({_id:ObjectId(req.params.id)})
+        .then((result) => {
+            res.send(result.deletedCount>0);
+        })
+    });
 
-// console.log(process.env.DB_USER)
-
-// app.get('/', (req, res) => {
-//   res.send('Hello World!')
-// })
-
-// Connect Mongodb Method 
-client.connect(err => {
-  console.log('connection err', err)
-  const productCollection = client.db("abidDb").collection("products");
-  console.log('Database Connected')
-
-  app.get('/products', (req, res) => {
-    productCollection.find()
-      .toArray((err, items) => {
-        console.log('from database', items);
-        res.send(items)
-      })
-  })
-
-
-  app.post('/adminPanel', (req, res) => {
-    const newProduct = req.body;
-    console.log('adding new product', newProduct);
-    productCollection.insertOne(newProduct)
-      .then(result => {
-        console.log('inserted count', result.insertedCount);
-        res.send(result.insertedCount > 0)
-      })
-  })
-
-  // client.close();
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
-})
+app.get("/", (req, res) => {
+    res.send("Hello Bangladesh");
+});
+
+app.listen(port);
